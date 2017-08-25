@@ -22,7 +22,8 @@ def signin_page():
 @main.route("/home")
 def home_page():
     if 'userid' in session:
-        return render_template('home.html')
+        top_filmes = rec_engine.filmes_mais_populares()
+        return render_template('home.html', top_filmes=top_filmes)
     else:
         return redirect(url_for('signin_page'))
 
@@ -34,6 +35,13 @@ def logout():
 @main.route('/rate-movies')
 def rate_movies():
     return render_template('rate.html')
+
+@main.route('/busca')
+def busca():
+    nome_filme = request.args.get('nome', '')
+    print('NOME FILME', nome_filme)
+    filmes = rec_engine.filmes_por_nome(nome_filme)
+    return render_template('resultado_busca.html', filmes=filmes)
 
 @main.route('/recomendation', methods=['POST'])
 def recomend():

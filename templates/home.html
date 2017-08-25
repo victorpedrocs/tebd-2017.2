@@ -2,8 +2,8 @@
 {% block navbar %}
 <a href="" class="navbar-brand">TEBD</a>
 <div class="collapse navbar-collapse">
-  <form action="" class="form-inline my-2 my-lg-0">
-    <input type="text" class="form-control mr-sm-2" placeholder="Procurar">
+  <form action="/busca" class="form-inline my-2 my-lg-0">
+    <input type="text" class="form-control mr-sm-2" name="nome" placeholder="Procurar">
     <button class="btn btn-outline-success my-2 my-sm-0" type="submit" >Procurar</button>
   </form>
 </div>
@@ -13,8 +13,16 @@
 <div class="container">
   <div class="row">
     <div class="col">
-      <a href="/rate-movies">Avaliar Filmes</a> 
+      <p>
+        <a href="/rate-movies">Avaliar Filmes</a>
+      </p>
+      <ul>
+      {% for filme in top_filmes %}
+        <li>{{filme}}</li>
+      {% endfor %}
+      </ul>
     </div>
   </div>
 </div>
+
 {% endblock %}

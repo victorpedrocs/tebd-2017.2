@@ -15,24 +15,25 @@ class EngineRecomendacao:
     dataset_test = self.sc.textFile('./ml-1m/ratings.dat')
     dataset_test = dataset_test.map(lambda line: line.split("::")).map(lambda tokens: (int(tokens[0]),int(tokens[1]),float(tokens[2]))).cache()
 
-    treino, teste = self.avaliacoes.randomSplit([8,2])
+    treino, teste = self.avaliacoes_rdd.randomSplit([8,2])
     teste_sem_notas = teste.map(lambda x: (x[0], x[1]))
     menor_erro = float('inf')
-    for fator_latente in self.fatores_latentes:
-        
-        model = ALS.train(treino, fator_latente, iterations=self.iteracoes, lambda_=self.regularizacao)
 
-        predicoes = model.predictAll(teste_sem_notas).map(lambda r: ((r[0], r[1]), r[2]))
-        rates_and_preds = teste.map(lambda r: ((int(r[0]), int(r[1])), float(r[2]))).join(predicoes)
-        erro = math.sqrt(rates_and_preds.map(lambda r: (r[1][0] - r[1][1])**2).mean())
-            
-        if erro < menor_erro:
-            menor_erro = erro
-            self.fator_latente_escolhido = fator_latente
+    for fator_latente in self.fatores_latentes:
+      model = ALS.train(treino, fator_latente, iterations=self.iteracoes, lambda_=self.regularizacao)
+      predicoes = model.predictAll(teste_sem_notas).map(lambda r: ((r[0], r[1]), r[2]))
+      rates_and_preds = teste.map(lambda r: ((int(r[0]), int(r[1])), float(r[2]))).join(predicoes)
+      erro = math.sqrt(rates_and_preds.map(lambda r: (r[1][0] - r[1][1])**2).mean())
+ 
+      if erro < menor_erro:
+        menor_erro = erro
+        self.fator_latente_escolhido = fator_latente
+
+    pickle.dump(self.fator_latente_escolhido, open("datasets/fator_latente_escolhido.txt", "wb"))
 
   def __train_model(self):
     logger.info("Treinando modelo...")
-    self.model = ALS.train(self.avaliacoes, self.fator_latente_escolhido,
+    self.model = ALS.train(self.avaliacoes_rdd, self.fator_latente_escolhido,
                             iterations=self.iteracoes, lambda_=self.regularizacao)
     logger.info("Modelo Treinado")
     # pickle.dump(self.fator_latente_escolhido, open("./fator_latente_escolhido.txt", "wb"))
@@ -81,48 +82,38 @@ class EngineRecomendacao:
 
 
 
-  def filmes_por_nome(nome_fime):
-    return self.filmesRDD.filter(lambda line: nome_filme.lower() in line[1].lower()).collect()
+  
+  def filmes_por_nome(self, nome_filme):
+    print(nome_filme)
+    return self.filmes_rdd.filter(lambda line: nome_filme.lower() in line[1].lower()).map(lambda l: l[1]).collect()
+  
+  def filmes_mais_populares(self):
+    logger.info('Agrupando filmes e notas pelo id do filme')
+    id_av_filme = (self.avaliacoes_rdd.map(lambda x: (int(x[1]), float(x[2]))).groupByKey())
+    logger.info('Calculando a media de notas dos filmes')
+    av_count_filme = id_av_filme.map(lambda x: (x[0], len(x[1]), float(sum(x for x in x[1]))/len(x[1])))
+    mais_populares = av_count_filme.map(lambda x: (x[0], x[2]))
+    
+    titulo_filme = self.filmes_rdd.map(lambda x: (int(x[0]),x[1]))
+    logger.info('Join com rdd de filmes')
+    media_notas = mais_populares.join(titulo_filme).join(av_count_filme) 
+    titulo_reviews = media_notas.map(lambda r: (r[1][0][1], r[1][0][0], r[1][1]))
+    top_filmes = titulo_reviews.filter(lambda r: r[2]>=10).takeOrdered(10, key=lambda x: -x[1])
+    return top_filmes
 
   def __init__(self, sc, dataset_path):
 
     logger.info("Iniciando engine de recomendacao: ")
-
     self.sc = sc
-
-    # carregar avaliacoes
     logger.info("Carregando avaliacoes...")
+    self.avaliacoes_rdd = sc.textFile('datasets/ml-latest-small/ratings.csv').map(lambda line: line.split(','))
+    cabecalho = self.avaliacoes_rdd.take(1)[0]
+    self.avaliacoes_rdd = self.avaliacoes_rdd.filter(lambda line: line != cabecalho).map(lambda tokens: ( int(tokens[0]) , int(tokens[1]) , float(tokens[2]) )).cache()
 
-    self.avaliacoes = sc.textFile('./ml-10M100K/ratings.dat')
-    self.avaliacoes = self.avaliacoes.map(lambda line: line.split("::")).map(lambda tokens: (int(tokens[0]),int(tokens[1]),float(tokens[2]))).cache()
-
-    # Carregar dados dos filmes
-    self.filmes = sc.textFile('./ml-1m/movies.dat')
-    self.filmes = self.filmes.map(lambda line: line.split("::")).map(lambda tokens: (tokens[0],tokens[1])).cache()
-    self.titulos_filmes = self.filmes.map(lambda x: (int(x[0]),x[1]))
-    fator_latente_escolhido = pickle.load(open("./fator_latente_escolhido.txt","rb"))
-
-    
-    id_av_filme = (self.avaliacoes.map(lambda x: (x[1], x[2])).groupByKey())
-    self.av_count_filme = id_av_filme.map(lambda x: (x[0], len(x[1]), float(sum(x for x in x[1]))/len(x[1])))
-
-    # ratings_file_path = os.path.join(dataset_path, 'ratings.csv')
-    # ratings_raw_RDD = self.sc.textFile(ratings_file_path)
-    # ratings_raw_data_header = ratings_raw_RDD.take(1)[0]
-    # self.ratings_RDD = ratings_raw_RDD.filter(lambda line: line!=ratings_raw_data_header)\
-    #     .map(lambda line: line.split(",")).map(lambda tokens: (int(tokens[0]),int(tokens[1]),float(tokens[2]))).cache()
-    
-    
-    # Load movies data for later use
-    # logger.info("Loading Movies data...")
-    # movies_file_path = os.path.join(dataset_path, 'movies.csv')
-    # movies_raw_RDD = self.sc.textFile(movies_file_path)
-    # movies_raw_data_header = movies_raw_RDD.take(1)[0]
-    # self.movies_RDD = movies_raw_RDD.filter(lambda line: line!=movies_raw_data_header)\
-    #     .map(lambda line: line.split(",")).map(lambda tokens: (int(tokens[0]),tokens[1],tokens[2])).cache()
-    # self.movies_titles_RDD = self.movies_RDD.map(lambda x: (int(x[0]),x[1])).cache()
-    # Pre-calculate movies ratings counts
-    # self.__count_and_average_ratings()
+    logger.info("Carregando filmes...")
+    self.filmes_rdd = sc.textFile('datasets/ml-latest-small/movies.csv').map(lambda line: line.split(','))
+    cabecalho = self.filmes_rdd.take(1)[0]
+    self.filmes_rdd = self.filmes_rdd.filter(lambda line: line != cabecalho).map(lambda token: (token[0], token[1])).cache()
 
     # Train the model
     self.fatores_latentes = [2,4,8,16,32]
@@ -131,6 +122,8 @@ class EngineRecomendacao:
     self.iteracoes = 10
     self.regularizacao = 0.1
     self.model = None
+    logger.info('Escolhendo fator latente')
     self.__escolhe_fator_latente()
-    self.__train_model()
+    # logger.info('Treinando modelo')
+    # self.__train_model()
 
