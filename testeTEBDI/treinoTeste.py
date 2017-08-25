@@ -9,8 +9,10 @@ import pickle
 sc = SparkContext()
 sc.setLogLevel("ERROR")
 
-avaliacoes = sc.textFile('/home/elaine/workspace/datasets/ml-1m/ratings.dat')
-avaliacoes = avaliacoes.map(lambda line: line.split("::")).map(lambda tokens: (int(tokens[0]),int(tokens[1]),float(tokens[2]))).cache()
+avaliacoes = sc.textFile('/Users/vpedro/PESC/2/tebd/assignments/trabalho/ml-latest-small/ratings.csv')
+header = avaliacoes.take(1)[0]
+
+avaliacoes = avaliacoes.filter(lambda line: line != header).map(lambda line: line.split(",")).map(lambda tokens: (int(tokens[0]),int(tokens[1]),float(tokens[2]))).cache()
 
 treino, teste = avaliacoes.randomSplit([8,2])
 teste_sem_notas = teste.map(lambda x: (x[0], x[1]))
@@ -30,7 +32,7 @@ for fator_latente in fatores_latentes:
         menor_erro = erro
         fator_latente_escolhido = fator_latente
 
-pickle.dump(fator_latente_escolhido, open("/home/elaine/workspace/datasets/fator_latente_escolhido.txt", "wb"))
+pickle.dump(fator_latente_escolhido, open("./fator_latente_escolhido.txt", "wb"))
 
 print(fator_latente_escolhido)
 print(menor_erro)

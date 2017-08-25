@@ -8,19 +8,19 @@ from pyspark.mllib.recommendation import MatrixFactorizationModel
 sc = SparkContext()
 sc.setLogLevel("ERROR")
 
-avaliacoes = sc.textFile('/home/elaine/workspace/datasets/ml-10M100K/ratings.dat')
+avaliacoes = sc.textFile('./ml-1m/ratings.dat')
 avaliacoes = avaliacoes.map(lambda line: line.split("::")).map(lambda tokens: (int(tokens[0]),int(tokens[1]),float(tokens[2]))).cache()
 
-filmes = sc.textFile('/home/elaine/workspace/datasets/ml-10M100K/movies.dat')
+filmes = sc.textFile('./ml-1m/movies.dat')
 filmes = filmes.map(lambda line: line.split("::")).map(lambda tokens: (tokens[0],tokens[1])).cache()
 
-fator_latente_escolhido = pickle.load(open("/home/elaine/workspace/datasets/fator_latente_escolhido.txt","rb"))
+fator_latente_escolhido = pickle.load(open("./fator_latente_escolhido.txt","rb"))
 
 titulo_filme = filmes.map(lambda x: (int(x[0]),x[1]))
 id_av_filme = (avaliacoes.map(lambda x: (x[1], x[2])).groupByKey())
 av_count_filme = id_av_filme.map(lambda x: (x[0], len(x[1]), float(sum(x for x in x[1]))/len(x[1])))
 
-model = MatrixFactorizationModel.load(sc, '/home/elaine/workspace/datasets/modelo_als')
+model = MatrixFactorizationModel.load(sc, './modelo_als')
 
 '''----Usuario da base com novas avaliacoes-----'''
 
@@ -29,10 +29,9 @@ id_usuario = int(input('Id do usuario : '))
 if id_usuario <= 71567:
     
     novas_avaliacoes = [] 
-    numero_avaliacoes = 10
+    numero_avaliacoes = 2
     
     for i in range (numero_avaliacoes):   
-        
         movieID = int(input('Id do filme : '))
         rating = int(input('Avaliacao : '))
         novas_avaliacoes.append((id_usuario, movieID, rating))
@@ -50,15 +49,15 @@ if id_usuario <= 71567:
 else: 
     
     novas_avaliacoes = [] 
-    numero_avaliacoes = 10
+    numero_avaliacoes = 2
     
-    for i in range (numero_avaliacoes):   
+    for i in range (numero_avaliacoes):
         
         movieID = int(input('Id do filme : '))
         rating = int(input('Avaliacao : '))
         novas_avaliacoes.append((id_usuario, movieID, rating))
         
-    pickle.dump(novas_avaliacoes, open("/home/elaine/workspace/datasets/novas_avaliacoes.txt", "wb"))
+    pickle.dump(novas_avaliacoes, open("./novas_avaliacoes.txt", "wb"))
     
     id_filme = map(lambda x: x[1], novas_avaliacoes)
     filmes_nao_avaliados = (filmes.filter(lambda x: x[0] not in id_filme).map(lambda x: (id_usuario, x[0])))

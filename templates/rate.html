@@ -1,0 +1,141 @@
+{% extends "layout.html" %}
+{% block navbar %}
+<a href="" class="navbar-brand">TEBD</a>
+<div class="collapse navbar-collapse">
+  <form action="" class="form-inline my-2 my-lg-0">
+    <input type="text" class="form-control mr-sm-2" placeholder="Procurar">
+    <button class="btn btn-outline-success my-2 my-sm-0" type="submit" >Procurar</button>
+  </form>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-6">
+    <form action="/recomendation" method="post">
+      <div class="card">
+        <div class="card-body">
+          <div class="form-group">
+            <label for="filme">Filme id</label>
+            <input type="text" class="form-control" name="filme1">
+          </div>
+          <div class="form-group">
+            <label for="nota">Nota</label>
+            <input type="number" min="1" max="5" name="nota1" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="form-group">
+            <label for="filme">Filme id</label>
+            <input type="text" class="form-control" name="filme2">
+          </div>
+          <div class="form-group">
+            <label for="nota">Nota</label>
+            <input type="number" min="1" max="5" name="nota2" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="form-group">
+            <label for="filme">Filme id</label>
+            <input type="text" class="form-control" name="filme3">
+          </div>
+          <div class="form-group">
+            <label for="nota">Nota</label>
+            <input type="number" min="1" max="5" name="nota3" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="form-group">
+            <label for="filme">Filme id</label>
+            <input type="text" class="form-control" name="filme4">
+          </div>
+          <div class="form-group">
+            <label for="nota">Nota</label>
+            <input type="number" min="1" max="5" name="nota4" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="form-group">
+            <label for="filme">Filme id</label>
+            <input type="text" class="form-control" name="filme5">
+          </div>
+          <div class="form-group">
+            <label for="nota">Nota</label>
+            <input type="number" min="1" max="5" name="nota5" class="form-control">
+          </div>
+        </div>
+      </div>
+      <!-- <div class="card">
+        <div class="card-body">
+          <div class="form-group">
+            <label for="filme">Filme id</label>
+            <input type="text" class="form-control" name="filme6">
+          </div>
+          <div class="form-group">
+            <label for="nota">Nota</label>
+            <input type="number" min="1" max="5" name="nota6" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="form-group">
+            <label for="filme">Filme id</label>
+            <input type="text" class="form-control" name="filme7">
+          </div>
+          <div class="form-group">
+            <label for="nota">Nota</label>
+            <input type="number" min="1" max="5" name="nota7" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="form-group">
+            <label for="filme">Filme id</label>
+            <input type="text" class="form-control" name="filme8">
+          </div>
+          <div class="form-group">
+            <label for="nota">Nota</label>
+            <input type="number" min="1" max="5" name="nota8" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="form-group">
+            <label for="filme">Filme id</label>
+            <input type="text" class="form-control" name="filme9">
+          </div>
+          <div class="form-group">
+            <label for="nota">Nota</label>
+            <input type="number" min="1" max="5" name="nota9" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="form-group">
+            <label for="filme">Filme id</label>
+            <input type="text" class="form-control" name="filme10">
+          </div>
+          <div class="form-group">
+            <label for="nota">Nota</label>
+            <input type="number" min="1" max="5" name="nota10" class="form-control">
+          </div>
+        </div>
+      </div> -->
+      <div class="form-group">
+        <input type="submit" value="" class="btn btn-primary" value="Enviar">
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
