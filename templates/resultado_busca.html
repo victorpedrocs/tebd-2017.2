@@ -17,33 +17,36 @@
       <ul>
         {% for filme in filmes %}
           <li>
-            <p class="lead">{{filme}}</p>
+            <p class="lead">{{filme[1]}}</p>
             <p>
-              <div class="form-check form-check-inline">
-                <label class="form-check-label">
-                  <input class="form-check-input" type="radio" name="nota" id="inlineRadio1" value="1"> 1
-                </label>
-              </div>
-              <div class="form-check form-check-inline">
-                <label class="form-check-label">
-                  <input class="form-check-input" type="radio" name="nota" id="inlineRadio2" value="2"> 2
-                </label>
-              </div>
-              <div class="form-check form-check-inline">
-                <label class="form-check-label">
-                  <input class="form-check-input" type="radio" name="nota" id="inlineRadio3" value="3"> 3
-                </label>
-              </div>
-              <div class="form-check form-check-inline">
-                <label class="form-check-label">
-                  <input class="form-check-input" type="radio" name="nota" id="inlineRadio3" value="4"> 4
-                </label>
-              </div>
-              <div class="form-check form-check-inline">
-                <label class="form-check-label">
-                  <input class="form-check-input" type="radio" name="nota" id="inlineRadio3" value="5"> 5
-                </label>
-              </div>
+              <form action="" class="avaliacao_filme">
+                <input type="hidden" id="id_filme" name="id_filme", value="{{filme[0]}}">
+                <div class="form-check form-check-inline">
+                  <label class="form-check-label">
+                    <input class="form-check-input" type="radio" name="nota" id="inlineRadio" value="1"> 1
+                  </label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <label class="form-check-label">
+                    <input class="form-check-input" type="radio" name="nota" id="inlineRadio" value="2"> 2
+                  </label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <label class="form-check-label">
+                    <input class="form-check-input" type="radio" name="nota" id="inlineRadio" value="3"> 3
+                  </label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <label class="form-check-label">
+                    <input class="form-check-input" type="radio" name="nota" id="inlineRadio" value="4"> 4
+                  </label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <label class="form-check-label">
+                    <input class="form-check-input" type="radio" name="nota" id="inlineRadio" value="5"> 5
+                  </label>
+                </div>
+              </form>
             </p>
           </li>
           
@@ -55,4 +58,20 @@
     </div>
   </div>
 </div>
+
+<script>
+  (function($) {
+    $('form.avaliacao_filme').each(function(index, form) {
+      var id_filme = $(form).children('input[name=id_filme]').val()
+      $(form).find('input#inlineRadio').click(function(element) {
+        var nota = $(form).find('input[name=nota]:checked').val()
+        console.log('NOTA', nota)
+        $.post('/rate-movie/'+id_filme, {nota: nota})
+        .done(function(data) {
+          console.log('DATA', data);
+        })
+      })
+    })
+  })(jQuery);
+</script>
 {% endblock %}

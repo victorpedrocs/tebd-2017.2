@@ -13,9 +13,7 @@
 <div class="container">
   <div class="row">
     <div class="col">
-      <p>
-        <a href="/rate-movies">Avaliar Filmes</a>
-      </p>
+      <h3>Top Filmes</h3>
       <ul>
       {% for filme in top_filmes %}
         <li>{{filme}}</li>
@@ -23,6 +21,17 @@
       </ul>
     </div>
   </div>
+
+  <div class="row">
+      <div class="col">
+        <h3>Recomendaçoes</h3>
+        <ul>
+        {% for filme in top_recomendados %}
+          <li>{{filme}}</li>
+        {% endfor %}
+        </ul>
+      </div>
+    </div>
 </div>
 
 {% endblock %}

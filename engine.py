@@ -2,7 +2,7 @@ import os
 import pickle
 import math
 from pyspark import SparkContext
-from pyspark.mllib.recommendation import ALS
+from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -31,75 +31,94 @@ class EngineRecomendacao:
 
     pickle.dump(self.fator_latente_escolhido, open("datasets/fator_latente_escolhido.txt", "wb"))
 
+  def get_fator_latente_from_disk(self):
+    self.fator_latente_escolhido = pickle.load(open("./datasets/fator_latente_escolhido.txt","rb"))
+
+  def calcular_contagem_avaliacoes(self):
+    logger.info('Agrupando filmes e notas pelo id do filme')
+    id_av_filme = (self.avaliacoes_rdd.map(lambda x: (int(x[1]), float(x[2]))).groupByKey())
+    logger.info('Calculando a media de notas dos filmes')
+    self.av_count_filme = id_av_filme.map(lambda x: (x[0], len(x[1]), float(sum(x for x in x[1]))/len(x[1])))
+
   def __train_model(self):
+    treino, teste = self.avaliacoes_rdd.randomSplit([8,2])
+    self.treino = treino
+    self.teste = teste
+    
     logger.info("Treinando modelo...")
-    self.model = ALS.train(self.avaliacoes_rdd, self.fator_latente_escolhido,
+    self.model = ALS.train(treino, self.fator_latente_escolhido,
                             iterations=self.iteracoes, lambda_=self.regularizacao)
+    teste_sem_notas = teste.map(lambda x: (x[0], x[1]))
+
+    predicoes = self.model.predictAll(teste_sem_notas).map(lambda r: ((r[0], r[1]), r[2]))
+    rates_and_preds = teste.map(lambda r: ((int(r[0]), int(r[1])), float(r[2]))).join(predicoes)
+    erro = math.sqrt(rates_and_preds.map(lambda r: (r[1][0] - r[1][1])**2).mean())
+
+    self.model.save(self.sc, './datasets/modelo_als')
+
+    print ('Erro no conjunto de teste: %s' % (erro))
+
+    # esta com repeticao
+    lista_ids = treino.map(lambda r: r[0]).collect()
+
+    #o certo seria salvar com o spark
+    pickle.dump(lista_ids, open("./datasets/lista_ids.txt", "wb"))
+    
     logger.info("Modelo Treinado")
-    # pickle.dump(self.fator_latente_escolhido, open("./fator_latente_escolhido.txt", "wb"))
+    pickle.dump(self.fator_latente_escolhido, open("./fator_latente_escolhido.txt", "wb"))
+
+  def load_model(self):
+    print("Load model from file")
+    self.model = MatrixFactorizationModel.load(self.sc, './datasets/modelo_als')
 
   def get_top_ratings(self, user_id, n_filmes, id_filmes, notas):
-    if id_usuario <= 71567:
-      novas_avaliacoes = []
-
-      for i in range (len(id_filmes)):
-        novas_avaliacoes.append((id_usuario, id_filmes[i], notas[i]))
-    
-      # id_filme = map(lambda x: x[1], novas_avaliacoes)
-      filmes_nao_avaliados = (self.filmes.filter(lambda x: x[0] not in id_filmes).map(lambda x: (id_usuario, x[0])))
-      recomendacao = model.predictAll(filmes_nao_avaliados)
-      
-      id_filme_notas_previstas = recomendacao.map(lambda x: (x.product, x.rating)).join(titulo_filme).join(av_count_filme)    
-      titulo_reviews = id_filme_notas_previstas.map(lambda r: (r[1][0][1], r[1][0][0], r[1][1]))    
-      filmes_recomendados = titulo_reviews.filter(lambda r: r[2]>=20).takeOrdered(20, key=lambda x: -x[1])
-      
-      print ('Lista de filmes:\n%s' % '\n'.join(map(str, filmes_recomendados)))
-    
-    else: 
-    
-      novas_avaliacoes = [] 
-      numero_avaliacoes = 2
-      
-      for i in range (numero_avaliacoes):   
-        
-        movieID = int(input('Id do filme : '))
-        rating = int(input('Avaliacao : '))
-        novas_avaliacoes.append((id_usuario, movieID, rating))
-        
-      pickle.dump(novas_avaliacoes, open("./novas_avaliacoes.txt", "wb"))
-      
-      id_filme = map(lambda x: x[1], novas_avaliacoes)
-      filmes_nao_avaliados = (filmes.filter(lambda x: x[0] not in id_filme).map(lambda x: (id_usuario, x[0])))
-      mais_populares = av_count_filme.map(lambda x: (x[0], x[2]))
-    
-      #antes id movie, notas previstas, agora id movie e media das notas
-      
-      id_filme_notas_previstas = mais_populares.join(titulo_filme).join(av_count_filme)    
-      titulo_reviews = id_filme_notas_previstas.map(lambda r: (r[1][0][1], r[1][0][0], r[1][1]))    
-      filmes_recomendados = titulo_reviews.filter(lambda r: r[2]>=20).takeOrdered(20, key=lambda x: -x[1])
-      
-      print ('Lista de filmes:\n%s' % '\n'.join(map(str, filmes_recomendados)))
-
-
-
-  
-  def filmes_por_nome(self, nome_filme):
-    print(nome_filme)
-    return self.filmes_rdd.filter(lambda line: nome_filme.lower() in line[1].lower()).map(lambda l: l[1]).collect()
-  
-  def filmes_mais_populares(self):
     logger.info('Agrupando filmes e notas pelo id do filme')
     id_av_filme = (self.avaliacoes_rdd.map(lambda x: (int(x[1]), float(x[2]))).groupByKey())
     logger.info('Calculando a media de notas dos filmes')
     av_count_filme = id_av_filme.map(lambda x: (x[0], len(x[1]), float(sum(x for x in x[1]))/len(x[1])))
-    mais_populares = av_count_filme.map(lambda x: (x[0], x[2]))
+    lista_ids = pickle.load(open("./datasets/lista_ids.txt","rb"))
+  
+  def filmes_por_nome(self, nome_filme):
+    print(nome_filme)
+    return self.filmes_rdd.filter(lambda line: nome_filme.lower() in line[1].lower()).collect()
+  
+  def filmes_mais_populares(self):
+    logger.info(' Recuperando filmes mais populares')
+    mais_populares = self.av_count_filme.map(lambda x: (x[0], x[2]))
     
     titulo_filme = self.filmes_rdd.map(lambda x: (int(x[0]),x[1]))
-    logger.info('Join com rdd de filmes')
-    media_notas = mais_populares.join(titulo_filme).join(av_count_filme) 
+    
+    media_notas = mais_populares.join(titulo_filme).join(self.av_count_filme) 
     titulo_reviews = media_notas.map(lambda r: (r[1][0][1], r[1][0][0], r[1][1]))
     top_filmes = titulo_reviews.filter(lambda r: r[2]>=10).takeOrdered(10, key=lambda x: -x[1])
     return top_filmes
+
+  def avaliar_filme(self,id_usuario, id_filme, nota):
+    avaliacao = [(id_usuario, id_filme, nota)]
+    nova_avaliacao_rdd = self.sc.parallelize(avaliacao)
+    self.avaliacoes_rdd = self.avaliacoes_rdd.filter(lambda a: a[0] != id_usuario and ap[1] != id_filme)
+    self.avaliacoes_rdd.union(nova_avaliacao_rdd)
+
+  def melhores_recomendacoes(self, id_usuario):
+    logger.info(' Recuperando recomendacoes para o usuario')
+    # recuperar os filmes não avaliados pelo usuario
+    filmes_nao_avaliados = self.avaliacoes_rdd.filter(lambda a: a[0] != id_usuario).map(lambda m: m[1]).countByValue()
+    fna_rdd = self.sc.parallelize(filmes_nao_avaliados.keys())
+    fna_rdd = fna_rdd.map(lambda l: (id_usuario, l))
+
+    # recuperar as sugestoes para o usuario
+    sugestoes_rdd = self.model.predictAll(fna_rdd)
+    
+    titulo_filme = self.filmes_rdd.map(lambda x: (int(x[0]),x[1]))
+
+    filmes_sugeridos = sugestoes_rdd.map(lambda l: (l.product, l.rating)).join(titulo_filme).join(self.av_count_filme)
+    
+    titulo_reviews = filmes_sugeridos.map(lambda r: (r[1][0][1], r[1][0][0], r[1][1]))
+    filmes_recomendados = titulo_reviews.filter(lambda r: r[2]>=20).takeOrdered(10, key=lambda x: -x[1])
+
+    return filmes_recomendados
+
+
 
   def __init__(self, sc, dataset_path):
 
@@ -122,8 +141,15 @@ class EngineRecomendacao:
     self.iteracoes = 10
     self.regularizacao = 0.1
     self.model = None
+    self.av_count_filme = 0
+
+
+
+    self.calcular_contagem_avaliacoes()
+    # self.load_model()
     logger.info('Escolhendo fator latente')
-    self.__escolhe_fator_latente()
-    # logger.info('Treinando modelo')
-    # self.__train_model()
+    # self.__escolhe_fator_latente()
+    self.get_fator_latente_from_disk()
+    logger.info('Treinando modelo')
+    self.__train_model()
 

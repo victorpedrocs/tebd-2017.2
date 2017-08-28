@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, session, redirect, escape, url_for
+from flask import Blueprint, render_template, request, session, redirect, escape, url_for, jsonify
 main = Blueprint('main', __name__)
 import json
 import logging
@@ -22,8 +22,10 @@ def signin_page():
 @main.route("/home")
 def home_page():
     if 'userid' in session:
+        user_id = session['userid']
         top_filmes = rec_engine.filmes_mais_populares()
-        return render_template('home.html', top_filmes=top_filmes)
+        top_recomendados = rec_engine.melhores_recomendacoes(user_id)
+        return render_template('home.html', top_filmes=top_filmes, top_recomendados=top_recomendados)
     else:
         return redirect(url_for('signin_page'))
 
@@ -32,14 +34,21 @@ def logout():
     session.pop('userid', None)
     return redirect(url_for('index'))
 
-@main.route('/rate-movies')
-def rate_movies():
-    return render_template('rate.html')
+@main.route('/rate-movie/<int:id_filme>', methods=['POST'])
+def rate_movies(id_filme):
+    nota = request.form['nota']
+    user_id = 0
+    if 'userid' in session:
+        user_id = session['userid']
+    else:
+        return redirect(url_for('main.signin_page'))
+    rec_engine.avaliar_filme(user_id, id_filme, nota)
+
+    return jsonify(data='ok')
 
 @main.route('/busca')
 def busca():
     nome_filme = request.args.get('nome', '')
-    print('NOME FILME', nome_filme)
     filmes = rec_engine.filmes_por_nome(nome_filme)
     return render_template('resultado_busca.html', filmes=filmes)
 

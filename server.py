@@ -6,6 +6,7 @@ from pyspark import SparkContext, SparkConf
 def init_spark_context():
     conf = SparkConf().setAppName("cf_spark-server")
     context = SparkContext(conf=conf, pyFiles=['app.py', 'engine.py'])
+    context.setLogLevel('ERROR')
 
     return context
 
