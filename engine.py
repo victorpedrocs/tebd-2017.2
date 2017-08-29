@@ -60,6 +60,7 @@ class EngineRecomendacao:
 
 
   def filmes_por_nome(self, nome_filme):
+    loger.info(' Consultando filmes por nome')
     return self.filmes_rdd.filter(lambda line: nome_filme.lower() in line[1].lower()).collect()
 
   
@@ -75,9 +76,10 @@ class EngineRecomendacao:
     return top_filmes
 
   def avaliar_filme(self,id_usuario, id_filme, nota):
+    logger.info('Avaliando filme', id_filme)
     avaliacao = [(id_usuario, id_filme, nota)]
     nova_avaliacao_rdd = self.sc.parallelize(avaliacao)
-    self.avaliacoes_rdd = self.avaliacoes_rdd.filter(lambda a: a[0] != id_usuario and ap[1] != id_filme)
+    self.avaliacoes_rdd = self.avaliacoes_rdd.filter(lambda a: a[0] != id_usuario and a[1] != id_filme)
     self.avaliacoes_rdd.union(nova_avaliacao_rdd)
 
   def melhores_recomendacoes(self, id_usuario):
