@@ -1,7 +1,7 @@
 import os
 import pickle
 import math
-from pyspark import SparkContext
+from pyspark import SparkContext, SQLContext
 from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel
 import shutil
 
@@ -13,9 +13,6 @@ logger = logging.getLogger(__name__)
 class EngineRecomendacao:
 
   def __escolhe_fator_latente(self):
-    dataset_test = self.sc.textFile('./ml-1m/ratings.dat')
-    dataset_test = dataset_test.map(lambda line: line.split("::")).map(lambda tokens: (int(tokens[0]),int(tokens[1]),float(tokens[2]))).cache()
-
     treino, teste = self.avaliacoes_rdd.randomSplit([8,2])
     teste_sem_notas = teste.map(lambda x: (x[0], x[1]))
     menor_erro = float('inf')
@@ -60,7 +57,7 @@ class EngineRecomendacao:
 
 
   def filmes_por_nome(self, nome_filme):
-    loger.info(' Consultando filmes por nome')
+    logger.info(' Consultando filmes por nome')
     return self.filmes_rdd.filter(lambda line: nome_filme.lower() in line[1].lower()).collect()
 
   
@@ -76,7 +73,7 @@ class EngineRecomendacao:
     return top_filmes
 
   def avaliar_filme(self,id_usuario, id_filme, nota):
-    logger.info('Avaliando filme', id_filme)
+    logger.info('Avaliando filme')
     avaliacao = [(id_usuario, id_filme, nota)]
     nova_avaliacao_rdd = self.sc.parallelize(avaliacao)
     self.avaliacoes_rdd = self.avaliacoes_rdd.filter(lambda a: a[0] != id_usuario and a[1] != id_filme)
@@ -105,15 +102,16 @@ class EngineRecomendacao:
 
     logger.info("Iniciando engine de recomendacao: ")
     self.sc = sc
+    self.sqlContext = SQLContext(sc)
+
     logger.info("Carregando avaliacoes...")
-    self.avaliacoes_rdd = sc.textFile('datasets/ml-latest-small/ratings.csv').map(lambda line: line.split(','))
-    cabecalho = self.avaliacoes_rdd.take(1)[0]
-    self.avaliacoes_rdd = self.avaliacoes_rdd.filter(lambda line: line != cabecalho).map(lambda tokens: ( int(tokens[0]) , int(tokens[1]) , float(tokens[2]) )).cache()
+    avaliacoes_df = self.sqlContext.read.csv('datasets/ml-latest/ratings.csv', header=True, sep=',', quote="\"")
+    self.avaliacoes_rdd = avaliacoes_df.rdd
+    
 
     logger.info("Carregando filmes...")
-    self.filmes_rdd = sc.textFile('datasets/ml-latest-small/movies.csv').map(lambda line: line.split(','))
-    cabecalho = self.filmes_rdd.take(1)[0]
-    self.filmes_rdd = self.filmes_rdd.filter(lambda line: line != cabecalho).map(lambda token: (token[0], token[1], token[2])).cache()
+    filmes_df = self.sqlContext.read.csv('datasets/ml-latest/movies.csv', header=True, sep=',', quote="\"")
+    self.filmes_rdd = filmes_df.rdd
 
     # Train the model
     self.fatores_latentes = [2,4,8,16,32]
@@ -127,10 +125,13 @@ class EngineRecomendacao:
 
 
     self.calcular_contagem_avaliacoes()
-    self.get_fator_latente_from_disk()
-    self.load_model()
-    # logger.info('Escolhendo fator latente')
-    # self.__escolhe_fator_latente()
-    # logger.info('Treinando modelo')
-    # self.train_model()
+
+    # logger.info('Carregando dados do disco')
+    # self.get_fator_latente_from_disk()
+    # self.load_model()
+    
+    logger.info('Escolhendo fator latente')
+    self.__escolhe_fator_latente()
+    logger.info('Treinando modelo')
+    self.train_model()
 
