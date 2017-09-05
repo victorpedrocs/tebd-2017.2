@@ -28,6 +28,7 @@ class EngineRecomendacao:
         self.fator_latente_escolhido = fator_latente
 
     pickle.dump(self.fator_latente_escolhido, open("datasets/fator_latente_escolhido.txt", "wb"))
+    pickle.dump(menor_erro, open('datasets/menor_erro.txt', 'wb'))
 
   def get_fator_latente_from_disk(self):
     self.fator_latente_escolhido = pickle.load(open("./datasets/fator_latente_escolhido.txt","rb"))
@@ -105,7 +106,7 @@ class EngineRecomendacao:
     self.sqlContext = SQLContext(sc)
 
     logger.info("Carregando avaliacoes...")
-    avaliacoes_df = self.sqlContext.read.csv('datasets/ml-latest/ratings.csv', header=True, sep=',', quote="\"")
+    avaliacoes_df = self.sqlContext.read.csv('datasets/ml-latest/ratings.csv', header=True, sep=',')
     self.avaliacoes_rdd = avaliacoes_df.rdd
     
 
@@ -129,7 +130,7 @@ class EngineRecomendacao:
     # logger.info('Carregando dados do disco')
     # self.get_fator_latente_from_disk()
     # self.load_model()
-    
+
     logger.info('Escolhendo fator latente')
     self.__escolhe_fator_latente()
     logger.info('Treinando modelo')
