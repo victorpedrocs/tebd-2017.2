@@ -127,12 +127,12 @@ class EngineRecomendacao:
 
     self.calcular_contagem_avaliacoes()
 
-    # logger.info('Carregando dados do disco')
-    # self.get_fator_latente_from_disk()
-    # self.load_model()
+    logger.info('Carregando dados do disco')
+    self.get_fator_latente_from_disk()
+    self.load_model()
 
-    logger.info('Escolhendo fator latente')
-    self.__escolhe_fator_latente()
-    logger.info('Treinando modelo')
-    self.train_model()
+    # logger.info('Escolhendo fator latente')
+    # self.__escolhe_fator_latente()
+    # logger.info('Treinando modelo')
+    # self.train_model()
 
