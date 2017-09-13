@@ -70,7 +70,7 @@ class EngineRecomendacao:
     
     media_notas = mais_populares.join(titulo_filme).join(self.av_count_filme) 
     titulo_reviews = media_notas.map(lambda r: (r[1][0][1], r[1][0][0], r[1][1]))
-    top_filmes = titulo_reviews.filter(lambda r: r[2]>=10).takeOrdered(10, key=lambda x: -x[1])
+    top_filmes = titulo_reviews.filter(lambda r: r[2]>=20).takeOrdered(10, key=lambda x: -x[1])
     return top_filmes
 
   def avaliar_filme(self,id_usuario, id_filme, nota):
