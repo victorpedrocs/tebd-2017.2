@@ -3,6 +3,7 @@ import pickle
 import math
 from pyspark import SparkContext
 from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel
+import shutil
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -40,47 +41,27 @@ class EngineRecomendacao:
     logger.info('Calculando a media de notas dos filmes')
     self.av_count_filme = id_av_filme.map(lambda x: (x[0], len(x[1]), float(sum(x for x in x[1]))/len(x[1])))
 
-  def __train_model(self):
-    treino, teste = self.avaliacoes_rdd.randomSplit([8,2])
-    self.treino = treino
-    self.teste = teste
+  def train_model(self):
     
     logger.info("Treinando modelo...")
-    self.model = ALS.train(treino, self.fator_latente_escolhido,
+    self.model = ALS.train(self.avaliacoes_rdd, self.fator_latente_escolhido,
                             iterations=self.iteracoes, lambda_=self.regularizacao)
-    teste_sem_notas = teste.map(lambda x: (x[0], x[1]))
 
-    predicoes = self.model.predictAll(teste_sem_notas).map(lambda r: ((r[0], r[1]), r[2]))
-    rates_and_preds = teste.map(lambda r: ((int(r[0]), int(r[1])), float(r[2]))).join(predicoes)
-    erro = math.sqrt(rates_and_preds.map(lambda r: (r[1][0] - r[1][1])**2).mean())
-
+    # Apaga pasta com modelo antigo
+    shutil.rmtree('./datasets/modelo_als')
+    # Salva o novo modelo
     self.model.save(self.sc, './datasets/modelo_als')
-
-    print ('Erro no conjunto de teste: %s' % (erro))
-
-    # esta com repeticao
-    lista_ids = treino.map(lambda r: r[0]).collect()
-
-    #o certo seria salvar com o spark
-    pickle.dump(lista_ids, open("./datasets/lista_ids.txt", "wb"))
     
     logger.info("Modelo Treinado")
-    pickle.dump(self.fator_latente_escolhido, open("./fator_latente_escolhido.txt", "wb"))
 
   def load_model(self):
-    print("Load model from file")
+    logger.info(" Load model from file")
     self.model = MatrixFactorizationModel.load(self.sc, './datasets/modelo_als')
 
-  def get_top_ratings(self, user_id, n_filmes, id_filmes, notas):
-    logger.info('Agrupando filmes e notas pelo id do filme')
-    id_av_filme = (self.avaliacoes_rdd.map(lambda x: (int(x[1]), float(x[2]))).groupByKey())
-    logger.info('Calculando a media de notas dos filmes')
-    av_count_filme = id_av_filme.map(lambda x: (x[0], len(x[1]), float(sum(x for x in x[1]))/len(x[1])))
-    lista_ids = pickle.load(open("./datasets/lista_ids.txt","rb"))
-  
+
   def filmes_por_nome(self, nome_filme):
-    print(nome_filme)
     return self.filmes_rdd.filter(lambda line: nome_filme.lower() in line[1].lower()).collect()
+
   
   def filmes_mais_populares(self):
     logger.info(' Recuperando filmes mais populares')
@@ -118,8 +99,6 @@ class EngineRecomendacao:
 
     return filmes_recomendados
 
-
-
   def __init__(self, sc, dataset_path):
 
     logger.info("Iniciando engine de recomendacao: ")
@@ -132,7 +111,7 @@ class EngineRecomendacao:
     logger.info("Carregando filmes...")
     self.filmes_rdd = sc.textFile('datasets/ml-latest-small/movies.csv').map(lambda line: line.split(','))
     cabecalho = self.filmes_rdd.take(1)[0]
-    self.filmes_rdd = self.filmes_rdd.filter(lambda line: line != cabecalho).map(lambda token: (token[0], token[1])).cache()
+    self.filmes_rdd = self.filmes_rdd.filter(lambda line: line != cabecalho).map(lambda token: (token[0], token[1], token[2])).cache()
 
     # Train the model
     self.fatores_latentes = [2,4,8,16,32]
@@ -146,10 +125,10 @@ class EngineRecomendacao:
 
 
     self.calcular_contagem_avaliacoes()
-    # self.load_model()
-    logger.info('Escolhendo fator latente')
-    # self.__escolhe_fator_latente()
     self.get_fator_latente_from_disk()
-    logger.info('Treinando modelo')
-    self.__train_model()
+    self.load_model()
+    # logger.info('Escolhendo fator latente')
+    # self.__escolhe_fator_latente()
+    # logger.info('Treinando modelo')
+    # self.train_model()
 

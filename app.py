@@ -19,6 +19,20 @@ def signin_page():
         return redirect(url_for('main.home_page'))
     return render_template('signin.html')
 
+@main.route('/signup', methods=['GET', 'POST'])
+def signup_page():
+    if request.method == 'POST':
+        user_id = request.form['userid']
+        top_filmes = rec_engine.filmes_mais_populares()
+        return render_template('resultado_busca.html', filmes=top_filmes, first_use=True)
+    return render_template('signup.html')
+
+@main.route('/end-signup')
+def end_signup():
+    rec_engine.train_model()
+    return redirect(url_for('main.home_page'))
+
+
 @main.route("/home")
 def home_page():
     if 'userid' in session:
@@ -27,7 +41,7 @@ def home_page():
         top_recomendados = rec_engine.melhores_recomendacoes(user_id)
         return render_template('home.html', top_filmes=top_filmes, top_recomendados=top_recomendados)
     else:
-        return redirect(url_for('signin_page'))
+        return redirect(url_for('main.signin_page'))
 
 @main.route('/logout')
 def logout():

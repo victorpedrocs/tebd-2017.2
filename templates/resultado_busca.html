@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
 {% block navbar %}
-<a href="" class="navbar-brand">TEBD</a>
+<a href="/home" class="navbar-brand">TEBD</a>
 <div class="collapse navbar-collapse">
   <!-- <form action="/busca" class="form-inline my-2 my-lg-0">
     <input type="text" class="form-control mr-sm-2" placeholder="Procurar">
@@ -17,7 +17,11 @@
       <ul>
         {% for filme in filmes %}
           <li>
+            {% if first_use %}
+            <p class="lead">{{filme[0]}}</p>
+            {% else %}
             <p class="lead">{{filme[1]}}</p>
+            {% endif %}
             <p>
               <form action="" class="avaliacao_filme">
                 <input type="hidden" id="id_filme" name="id_filme", value="{{filme[0]}}">
@@ -52,6 +56,10 @@
           
         {% endfor %}
       </ul>
+
+      {% if first_use %}
+      <a href="/end-signup" class="btn btn-primary">Continuar</a>
+      {% endif %}
       {% else %}
       <h4>Nenhum filme encontrado</h4>
       {% endif %}
